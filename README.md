@@ -14,7 +14,7 @@
 0.  克隆本仓库
 
     ```shell
-    git clone --depth 1 https://github.com/zdWang04/cmd_runner.git path/to/some/folder
+    git clone --depth 1 https://github.com/zdWang04/CmdRunner.git path/to/some/folder
     ```
 
 1.  编辑器支持（仅 vscode）
