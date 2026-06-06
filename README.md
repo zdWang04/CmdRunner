@@ -17,7 +17,7 @@
     git clone --depth 1 https://github.com/zdWang04/CmdRunner.git path/to/some/folder
     ```
 
-1.  编辑器支持（仅 vscode）
+1.  编辑器支持（仅vscode）
 
     `ctrl+shift+P`，输入`setting.json`打开配置文件，将
 
@@ -30,20 +30,23 @@
 2.  制作脚本
 
     ```python
+    # ur_script.py
+
     import sys
-    sys.path.append("path/to/some/folder") # 很重要，换为克隆时指定的文件夹
+    sys.path.append("path/to/some/folder") # 换为克隆时指定的文件夹
     from run import Task, Tasks
     from config import GLOBAL_CONFIG as cfg
 
     # 首先进行一些配置
     cfg.dry_run = False
     cfg.max_workers = 16
+    cfg.log_path = "./zzz_log_path"
 
     # 然后制作命令和任务标签
-    single_cmd = "single_cmd"
-    single_cmd_tag = "single_cmd_tag"
+    single_cmd = "shell_cmd0"
+    single_cmd_tag = "cmd0_tag" # （可选）
     cmd_list = ["shell_cmd1", "shell_cmd2", "shell_cmd3"]
-    tag_list = ["cmd1_tag", "cmd2_tag", "cmd3_tag"] # (可选)，没有的话默认为task_{i}，i 为cmd_list中的索引
+    tag_list = ["cmd1_tag", "cmd2_tag", "cmd3_tag"] # (可选)
 
     # 然后创建任务
     single_task = Task(single_cmd, single_cmd_tag)

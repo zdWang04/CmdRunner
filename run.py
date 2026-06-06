@@ -1,13 +1,13 @@
 from functools import partial
 from subprocess import run, CalledProcessError
 from typing import Optional, List
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool
 import sys
 from timer import Timer
 
 from config import GLOBAL_CONFIG as cfg
 
-__prun = partial(run, shell=True, executable="/bin/bash", check=True, text=True)
+_prun = partial(run, shell=True, executable="/bin/bash", check=True, text=True)
 
 
 class Task:
@@ -18,17 +18,21 @@ class Task:
     id : 任务id
     """
 
-    def __init__(self, cmd: str, tag: str = "", id: int = 0) -> None:
+    def __init__(self, cmd: str, tag: str = "task", id: int = 0) -> None:
         self.cmd = cmd
         self.tag = tag
         self.id = id
         self.timer = Timer()
+
+        self.log_file = cfg.log_path / f"{tag}_{id}.log"
+        self.log_error_file = cfg.log_path / f"{tag}_{id}.error.log"
+
         self.successed = False
         self.error = None
 
-    def __task_report(self) -> str:
+    def _task_report(self) -> str:
         return (
-            f"[SUCCESSED] | {self.timer.done()} | {self.id} | {self.tag} | {self.cmd}"
+            f"[SUCCESSED] | {self.timer.done()} | {self.id} | {self.tag} | {self.error} | {self.cmd}"
             if self.successed
             else f"[FAILED]    | {self.timer.done()} | {self.id} | {self.tag} | {self.error} | {self.cmd}"
         )
@@ -39,13 +43,19 @@ class Task:
             print("[DRY_RUN]")
         else:
             try:
+                print(f"Task Start: {self.tag}_{self.id}")
                 self.timer.reset()
-                __prun(self.cmd)
+                with (
+                    open(self.log_file, "w") as log_f,
+                    open(self.log_error_file, "w") as error_f,
+                ):
+                    _prun(self.cmd, stdout=log_f, stderr=error_f)
                 self.successed = True
+                print(f"Task Done: {self.tag}_{self.id}")
             except CalledProcessError as e:
                 self.error = e
 
-        print(self.__task_report())
+        print(self._task_report())
 
 
 class Tasks:
@@ -62,8 +72,6 @@ class Tasks:
         self.tasks: List[Task] = self.__make_tasks()
 
         self.result: dict[str, List[Task]] = {"SUCCESSED": [], "FAILED": []}
-
-        self.max_worker: int = max(cfg.max_worker, cpu_count() - 2)
 
     @staticmethod
     def __wrapper(task: Task) -> None:
@@ -83,29 +91,29 @@ class Tasks:
             else:
                 self.result["FAILED"].append(task)
 
-    def __task_report(self) -> None:
+    def _task_report(self) -> None:
 
         print(f"\n{'=' * 50}")
         print(f"All task done! Time: {self.global_timer.done()}")
 
         self.__update_result_dict()
-        print(f"|{'successed':=^50}|")
+        print(f"|{'SUCCESSED':=^50}|")
         for task in self.result["SUCCESSED"]:
-            print(task.__task_report())
-        print(f"|{'failed':=^50}|")
+            print(task._task_report())
+        print(f"|{'FAILED':=^50}|")
         for task in self.result["FAILED"]:
-            print(task.__task_report())
+            print(task._task_report())
 
     def run(self):
         if cfg.dry_run:
             for task in self.tasks:
                 task.run()
-            self.__task_report()
+            self._task_report()
             return
 
         self.global_timer.reset()
 
-        with Pool(processes=self.max_worker) as pool:
+        with Pool(processes=cfg.max_worker) as pool:
             try:
                 for _ in pool.imap_unordered(self.__wrapper, self.tasks):
                     pass
@@ -115,4 +123,4 @@ class Tasks:
                 pool.join()
                 sys.exit(1)
 
-        self.__task_report()
+        self._task_report()
