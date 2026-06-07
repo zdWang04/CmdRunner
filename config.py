@@ -1,14 +1,13 @@
 from dataclasses import dataclass
 from pathlib import Path
 from multiprocessing import cpu_count
-from utils import mkdir
 
 
 @dataclass
 class Config:
     _log_path: Path = Path("./zzz_log")
     _dry_run: bool = False
-    _max_worker: int = 8
+    _max_worker: int = 20
 
     @property
     def log_path(self) -> Path:
@@ -39,7 +38,6 @@ class Config:
 
     def __post_init__(self):
         self.log_path = self._log_path
-        mkdir(self.log_path)
         self.max_worker = self._max_worker
 
 

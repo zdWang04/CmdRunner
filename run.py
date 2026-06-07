@@ -6,6 +6,7 @@ import sys
 from timer import Timer
 
 from config import GLOBAL_CONFIG as cfg
+from utils import mkdir
 
 _prun = partial(run, shell=True, executable="/bin/bash", check=True, text=True)
 
@@ -24,8 +25,10 @@ class Task:
         self.id = id
         self.timer = Timer()
 
-        self.log_file = cfg.log_path / f"{tag}_{id}.log"
-        self.log_error_file = cfg.log_path / f"{tag}_{id}.error.log"
+        if not cfg.dry_run:
+            mkdir(cfg.log_path)
+            self.log_file = cfg.log_path / f"{tag}_{id}.log"
+            self.log_error_file = cfg.log_path / f"{tag}_{id}.error.log"
 
         self.successed = False
         self.error = None
@@ -58,6 +61,10 @@ class Task:
         print(self._task_report())
 
 
+def _tasks_run_wrapper(task: Task):
+    task.run()
+
+
 class Tasks:
     def __init__(
         self,
@@ -72,10 +79,6 @@ class Tasks:
         self.tasks: List[Task] = self.__make_tasks()
 
         self.result: dict[str, List[Task]] = {"SUCCESSED": [], "FAILED": []}
-
-    @staticmethod
-    def __wrapper(task: Task) -> None:
-        task.run()
 
     def __make_tasks(self) -> List[Task]:
         task_list = []
@@ -110,12 +113,16 @@ class Tasks:
                 task.run()
             self._task_report()
             return
-
+        if len(self.cmds) < cfg.max_worker:
+            cfg.max_worker = len(self.cmds)
+            print(
+                f"number of cmds is less than `max_worker`, using {len(self.cmds)} workers instead"
+            )
+        print(f"use {cfg.max_worker} workers")
         self.global_timer.reset()
-
         with Pool(processes=cfg.max_worker) as pool:
             try:
-                for _ in pool.imap_unordered(self.__wrapper, self.tasks):
+                for _ in pool.imap_unordered(_tasks_run_wrapper, self.tasks):
                     pass
             except KeyboardInterrupt:
                 print("\n\n[!] Stopped by KeyboardInterrupt")

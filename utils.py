@@ -2,14 +2,20 @@ from pathlib import Path
 from typing import List
 
 
-def ls(path: str, absolute: bool = True) -> List[Path]:
-    return [i.resolve() if absolute else i for i in Path(path).iterdir()]
+def __to_path(path: str | Path) -> Path:
+    return Path(path) if isinstance(path, str) else path
 
 
-def mkdir(path: str | Path) -> None:
-    path = path if isinstance(path, Path) else Path(path)
-    Path(path).mkdir(exist_ok=True, parents=True)
+def ls(path: str | Path, absolute: bool = True) -> List[Path]:
+    path = __to_path(path)
+    return [i.resolve() if absolute else i for i in path.iterdir()]
 
 
-def glob(path: str, pattern: str) -> List[Path]:
-    return list(Path(path).glob(pattern))
+def mkdir(path: str | Path) -> Path:
+    path = __to_path(path)
+    path.mkdir(exist_ok=True, parents=True)
+    return path
+
+
+def glob(path: str | Path, pattern: str) -> List[Path]:
+    return list(__to_path(path).glob(pattern))
