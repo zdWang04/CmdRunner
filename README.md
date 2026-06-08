@@ -11,6 +11,8 @@
 
 ## Quick Start
 
+### 从头写
+
 0.  克隆本仓库
 
     ```shell
@@ -62,6 +64,16 @@
     ```shell
     python3 ./ur_script.py || python ./ur_script.py
     ```
+
+### 从模板创建
+
+0. 使用预定义模板
+
+   ```shell
+   python3 /path/to/some/folder/mk_template.py ./ur_script.py
+   ```
+
+1. 后续如[从头](###从头)
 
 ## 需要注意什么？
 
