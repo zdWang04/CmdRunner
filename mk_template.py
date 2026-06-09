@@ -1,6 +1,8 @@
 import argparse
 from pathlib import Path
 
+from utils import to_path, mkdir
+
 
 def mk_argparser():
     parser = argparse.ArgumentParser(description="创建默认CmdRunner模板")
@@ -10,7 +12,12 @@ def mk_argparser():
     return args
 
 
-def create_template(file_path: Path):
+def create_template(file_path: str | Path):
+    file_path = to_path(file_path)
+    if file_path.exists():
+        print(f"[ERROR] {file_path} already exists, can't create template")
+        return
+
     with open(file_path, "w") as f:
         f.write("""import sys
 
