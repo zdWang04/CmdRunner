@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 
-from utils import to_path, mkdir
+from utils import to_path
 
 
 def mk_argparser():

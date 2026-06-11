@@ -36,7 +36,7 @@
 
     import sys
     sys.path.append("path/to/some/folder") # 换为克隆时指定的文件夹
-    from run import Task, Tasks
+    from task import create_single_task, create_parallel_tasks_from_list, create_serial_tasks_from_list
     from config import GLOBAL_CONFIG as cfg
 
     # 首先进行一些配置
@@ -51,12 +51,14 @@
     tag_list = ["cmd1_tag", "cmd2_tag", "cmd3_tag"] # (可选)
 
     # 然后创建任务
-    single_task = Task(single_cmd, single_cmd_tag)
-    list_tasks = Tasks(cmd_list, tag_list)
+    single_task = create_single_task(single_cmd, single_cmd_tag)
+    parallel_tasks = create_parallel_tasks_from_list(cmd_list, tag_list)
+    serial_tasks = create_serial_tasks_from_list(cmd_list, tag_list)
 
     # 最后跑起来，run!!!
     single_task.run()
-    list_tasks.run()
+    parallel_tasks.run() # 并行运行命令
+    serial_tasks.run() # 串行运行命令
     ```
 
 3.  运行脚本
@@ -86,3 +88,4 @@
 - 日志
 - 更干净的输出
 - 隐晦角落的 bug
+- 对 Pipeline 的支持
