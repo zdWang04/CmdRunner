@@ -2,30 +2,34 @@ from dataclasses import dataclass
 from pathlib import Path
 from multiprocessing import cpu_count
 
+from utils import to_path
+
 
 @dataclass
 class Config:
+    temp_autoclean: bool = True
+    dry_run: bool = False
     _log_path: Path = Path("./zzz_log")
-    _dry_run: bool = False
     _max_worker: int = 20
+    _temp_path: Path = Path("./temp")
 
+    # temp_path
+    @property
+    def temp_path(self) -> Path:
+        return self._temp_path
+
+    @temp_path.setter
+    def temp_path(self, value: str | Path):
+        self._temp_path = to_path(value)
+
+    # log_path
     @property
     def log_path(self) -> Path:
         return self._log_path
 
     @log_path.setter
     def log_path(self, value: Path | str):
-        if isinstance(value, str):
-            value = Path(value)
-        self._log_path = value
-
-    @property
-    def dry_run(self) -> bool:
-        return self._dry_run
-
-    @dry_run.setter
-    def dry_run(self, value: bool):
-        self._dry_run = value
+        self._log_path = to_path(value)
 
     @property
     def max_worker(self) -> int:
@@ -39,6 +43,7 @@ class Config:
     def __post_init__(self):
         self.log_path = self._log_path
         self.max_worker = self._max_worker
+        self.temp_path = self._temp_path
 
 
 GLOBAL_CONFIG = Config()
