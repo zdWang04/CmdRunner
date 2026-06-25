@@ -67,16 +67,6 @@
     python3 ./ur_script.py || python ./ur_script.py
     ```
 
-### 从模板创建
-
-0. 使用预定义模板
-
-   ```shell
-   python3 /path/to/some/folder/mk_template.py ./ur_script.py
-   ```
-
-1. 后续如[从头](###从头)
-
 ## 需要注意什么？
 
 - 需要注意这个项目只在`python3.12`解释器 + `ubuntu24.04` 上正常运行，并没有在其他版本python和环境下进行完全测试

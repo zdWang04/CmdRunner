@@ -1,4 +1,5 @@
 from pathlib import Path
+import shutil
 
 
 def to_path(path: str | Path) -> Path:
@@ -18,3 +19,8 @@ def mkdir(path: str | Path) -> Path:
 
 def glob(path: str | Path, pattern: str) -> list[Path]:
     return list(to_path(path).glob(pattern))
+
+
+def delete_directory(folder: Path) -> None:
+    if folder.exists():
+        shutil.rmtree(folder, ignore_errors=False)

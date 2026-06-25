@@ -1,9 +1,10 @@
 import sys
 from functools import partial
 from subprocess import run
-from typing import Optional
+from typing import Optional, Union, TypeAlias
 from multiprocessing import Pool
 from pathlib import Path
+from uuid import uuid4
 
 from timer import Timer
 from config import GLOBAL_CONFIG as cfg
@@ -17,6 +18,8 @@ __all__ = [
 
 _prun = partial(run, shell=True, executable="/bin/bash", check=True, text=True)
 
+TaskType: TypeAlias = Union["_Task", "_ParallelTasks", "_SerialTasks"]
+
 
 class _Task:
     """
@@ -26,18 +29,23 @@ class _Task:
     id : 任务id
     """
 
-    def __init__(self, cmd: str, tag: str = "task", id: int = 0) -> None:
+    def __init__(
+        self,
+        cmd: str,
+        tag: str = "task",
+        log_path: Path = Path("./"),
+    ) -> None:
         self.cmd = cmd
         self.tag = tag
-        # todo: maybe use uuid.uuid4 ? how to trace cmd sequentially?
-        self.id = id
+        self.id = str(uuid4())
         self.timer = Timer()
 
         if not cfg.dry_run:
-            mkdir(cfg.log_path)
-            mkdir(cfg.temp_path)
-            self.log_stdout_file = cfg.log_path / f"{tag}_{id}.stdout.log"
-            self.log_stderr_file = cfg.log_path / f"{tag}_{id}.stderr.log"
+            mkdir(log_path)
+            if log_path:
+                mkdir(log_path)
+            self.log_stdout_file = log_path / f"{tag}_{id}.stdout.log"
+            self.log_stderr_file = log_path / f"{tag}_{id}.stderr.log"
 
         self.successed = False
         self.error = None
@@ -47,6 +55,16 @@ class _Task:
             f"[SUCCESSED] | {self.timer.done()} | {self.id} | {self.tag} | {self.error} | {self.cmd}"
             if self.successed
             else f"[FAILED] | {self.timer.done()} | {self.id} | {self.tag} | {self.error} | {self.cmd}"
+        )
+
+    def __repr__(self) -> str:
+        log_status = "ready" if hasattr(self, "log_stdout_file") else "dry_run"
+        return (
+            f"{self.__class__.__name__}\n"
+            f"id={self.id}\n"
+            f"tag={self.tag!r}\n"
+            f"cmd={self.cmd[:50] + '...' if len(self.cmd) > 50 else self.cmd!r}\n"
+            f"status={log_status}\n"
         )
 
     def run(self):
@@ -67,25 +85,11 @@ class _Task:
                 self.error = e
                 self.successed = False
 
-        if cfg.temp_autoclean:
-            _delete_directory(cfg.temp_path)
-
         print(self._task_report())
 
 
-def _tasks_run_wrapper(task: _Task):
-    task.run()  # if quit correctly, the `task.successed` will be set to `True`
-
-
-def _delete_directory(file: Path):
-    if not file.exists():
-        return
-    for file in cfg.temp_path.glob("*"):
-        if file.is_file():
-            file.unlink()
-        elif file.is_dir():
-            _delete_directory(file)
-    file.rmdir()
+def _tasks_run_wrapper(task: TaskType):
+    task.run()  # if process quits correctly, `task.successed` will be set to `True`
 
 
 class _ParallelTasks:
@@ -109,24 +113,29 @@ class _ParallelTasks:
 
     def __init__(
         self,
-        tasks: list[_Task],
+        tasks: list[TaskType],
     ) -> None:
         self.tasks = tasks
-        self.global_timer: Timer = Timer()
+
+    def __repr__(self) -> str:
+        task_count = len(self.tasks)
+        tasks_repr = "\n".join(repr(task) for task in self.tasks)
+        return f"{self.__class__.__name__} | count={task_count} |\n{tasks_repr}"
 
     def run(self):
         if cfg.dry_run:
             for task in self.tasks:
                 task.run()
             return
+        max_worker = cfg.max_worker
         if len(self.tasks) < cfg.max_worker:
-            cfg.max_worker = len(self.tasks)
+            max_worker = len(self.tasks)
             print(
                 f"number of tasks is less than `max_worker`, using {len(self.tasks)} workers instead"
             )
-        print(f"use {cfg.max_worker} workers")
-        self.global_timer.reset()
-        with Pool(processes=cfg.max_worker) as pool:
+
+        print(f"use {max_worker} workers")
+        with Pool(processes=max_worker) as pool:
             try:
                 for _ in pool.imap_unordered(_tasks_run_wrapper, self.tasks):
                     pass
@@ -135,11 +144,6 @@ class _ParallelTasks:
                 pool.terminate()
                 pool.join()
                 sys.exit(1)
-
-        # _tasks_report(self.global_timer, self.tasks)
-
-        if cfg.temp_autoclean:
-            _delete_directory(cfg.temp_path)
 
 
 class _SerialTasks:
@@ -157,12 +161,13 @@ class _SerialTasks:
         run(): 启动串行任务执行
     """
 
-    def __init__(
-        self,
-        tasks: list[_Task],
-    ) -> None:
+    def __init__(self, tasks: list[TaskType]) -> None:
         self.tasks = tasks
-        self.global_timer: Timer = Timer()
+
+    def __repr__(self) -> str:
+        task_count = len(self.tasks)
+        tasks_repr = "\n".join(repr(task) for task in self.tasks)
+        return f"{self.__class__.__name__} | count={task_count} |\n{tasks_repr}"
 
     def run(self):
         if cfg.dry_run:
@@ -177,41 +182,52 @@ class _SerialTasks:
                 print("\n\n[!] Stopped by KeyboardInterrupt")
                 sys.exit(1)
 
-        # _tasks_report(self.global_timer, self.tasks)
 
-        if cfg.temp_autoclean:
-            _delete_directory(cfg.temp_path)
-
-
-def create_single_task(cmd: str, tag: Optional[str] = None, id: int = 0) -> _Task:
-    tag = f"some_task_{id}" if tag is None else tag
-    task = _Task(cmd, tag, id)
-    return task
+def create_single_task(cmd: str, tag: Optional[str] = None) -> _Task:
+    tag = tag if tag is not None else f"task_id_{id}"
+    return _Task(cmd, tag)
 
 
 def create_parallel_tasks_from_list(
-    cmd_list: list[str], tag_list: list[Optional[str]] = [None]
+    cmd_list: list[str], tag_list: Optional[list[str]] = None
 ) -> _ParallelTasks:
+    tag_list = (
+        tag_list if tag_list is not None else [f"cmd_{i}" for i in range(len(cmd_list))]
+    )
     assert len(cmd_list) == len(tag_list), (
         "length of `cmd_list` must equal to `tag_list`"
     )
     ptasks = []
     for idx, cmd in enumerate(cmd_list):
-        task = create_single_task(cmd, tag_list[idx], idx)
+        task = create_single_task(cmd, tag_list[idx])
         ptasks.append(task)
     ptasks = _ParallelTasks(ptasks)
     return ptasks
 
 
 def create_serial_tasks_from_list(
-    cmd_list: list[str], tag_list: list[Optional[str]] = [None]
+    cmd_list: list[str], tag_list: Optional[list[str]] = None
 ) -> _SerialTasks:
+
+    tag_list = (
+        tag_list if tag_list is not None else [f"cmd_{i}" for i in range(len(cmd_list))]
+    )
+
     assert len(cmd_list) == len(tag_list), (
         "length of `cmd_list` must equal to `tag_list`"
     )
     stasks = []
     for idx, cmd in enumerate(cmd_list):
-        task = create_single_task(cmd, tag_list[idx], idx)
+        task = create_single_task(cmd, tag_list[idx])
         stasks.append(task)
     stasks = _SerialTasks(stasks)
     return stasks
+
+
+def create_tasks_from_task(
+    tasks: list[TaskType], parallel: bool = False
+) -> _ParallelTasks | _SerialTasks:
+    if parallel:
+        return _ParallelTasks(tasks)
+    else:
+        return _SerialTasks(tasks)
