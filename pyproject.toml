@@ -1,0 +1,12 @@
+[project]
+name = "cmdrunner"
+version = "0.1.0"
+authors = [
+    { name = "zdWang04", email = "zdw04@outlook.com" }
+]
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.9.18,<0.10.0"]
+build-backend = "uv_build"

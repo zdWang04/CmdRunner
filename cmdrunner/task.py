@@ -1,24 +1,24 @@
 import sys
 from functools import partial
-from subprocess import run
-from typing import Optional, Union, TypeAlias
 from multiprocessing import Pool
 from pathlib import Path
+from subprocess import CalledProcessError, run
 from uuid import uuid4
 
-from timer import Timer
 from config import GLOBAL_CONFIG as cfg
 from utils import mkdir
 
+from .timer import Timer
+
 __all__ = [
-    "create_single_task",
     "create_parallel_tasks_from_list",
     "create_serial_tasks_from_list",
+    "create_single_task",
 ]
 
 _prun = partial(run, shell=True, executable="/bin/bash", check=True, text=True)
 
-TaskType: TypeAlias = Union["_Task", "_ParallelTasks", "_SerialTasks"]
+type TaskType = _Task | _ParallelTasks | _SerialTasks
 
 
 class _Task:
@@ -44,8 +44,8 @@ class _Task:
             mkdir(log_path)
             if log_path:
                 mkdir(log_path)
-            self.log_stdout_file = log_path / f"{tag}_{id}.stdout.log"
-            self.log_stderr_file = log_path / f"{tag}_{id}.stderr.log"
+            self.log_stdout_file = log_path / f"{tag}_{self.id}.stdout.log"
+            self.log_stderr_file = log_path / f"{tag}_{self.id}.stderr.log"
 
         self.successed = False
         self.error = None
@@ -81,7 +81,7 @@ class _Task:
                     _prun(self.cmd, stdout=log_f, stderr=error_f)
                 print(f"Task Done: {self.tag}_{self.id}")
                 self.successed = True
-            except Exception as e:
+            except CalledProcessError as e:
                 self.error = e
                 self.successed = False
 
@@ -89,7 +89,7 @@ class _Task:
 
 
 def _tasks_run_wrapper(task: TaskType):
-    task.run()  # if process quits correctly, `task.successed` will be set to `True`
+    task.run()
 
 
 class _ParallelTasks:
@@ -183,13 +183,13 @@ class _SerialTasks:
                 sys.exit(1)
 
 
-def create_single_task(cmd: str, tag: Optional[str] = None) -> _Task:
+def create_single_task(cmd: str, tag: str | None = None) -> _Task:
     tag = tag if tag is not None else f"task_id_{id}"
     return _Task(cmd, tag)
 
 
 def create_parallel_tasks_from_list(
-    cmd_list: list[str], tag_list: Optional[list[str]] = None
+    cmd_list: list[str], tag_list: list[str] | None = None
 ) -> _ParallelTasks:
     tag_list = (
         tag_list if tag_list is not None else [f"cmd_{i}" for i in range(len(cmd_list))]
@@ -206,7 +206,7 @@ def create_parallel_tasks_from_list(
 
 
 def create_serial_tasks_from_list(
-    cmd_list: list[str], tag_list: Optional[list[str]] = None
+    cmd_list: list[str], tag_list: list[str] | None = None
 ) -> _SerialTasks:
 
     tag_list = (

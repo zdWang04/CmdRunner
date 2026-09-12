@@ -1,10 +1,12 @@
-# Pipeline is for organizing multi `_Task`
-from typing import Optional
-from task import TaskType
 from itertools import groupby
-
-from task import create_parallel_tasks_from_list, create_serial_tasks_from_list
+from typing import Optional
 from uuid import uuid4
+
+from task import (
+    TaskType,
+    create_parallel_tasks_from_list,
+    create_serial_tasks_from_list,
+)
 
 
 class Pipeline:
@@ -35,7 +37,7 @@ class Pipeline:
         cmds: list[str],
         tags: list[str],
         paralle_flag: list[bool],
-        pipeline_name: Optional[str] = None,
+        pipeline_name: str | None = None,
     ):
 
         g = groupby(paralle_flag)

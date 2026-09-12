@@ -11,71 +11,94 @@
 
 ## Quick Start
 
-### 从头写
-
 0.  克隆本仓库
 
     ```shell
     git clone --depth 1 https://github.com/zdWang04/CmdRunner.git path/to/some/folder
     ```
 
-1.  编辑器支持（仅vscode）
+1.  永久加入路径（可选）
 
-    `ctrl+shift+P`，输入`setting.json`打开配置文件，将
+    - linux用户
 
-    ```json
-    "python.analysis.extraPaths": ["path/to/some/folder"],
+      打开`~/.bashrc`或者`~/.zshrc`（linux用户）
+
+    ```bash
+          export PYTHONPATH="path/to/some/folder:$PYTHONPATH"
     ```
 
-    写入到配置中
+    - Windows用户
+
+      `windows + R`呼出窗口，输入`cmd`，然后运行以下命令
+
+    ```cmd
+      setx PYTHONPATH "C:path/to/some/folder"
+    ```
 
 2.  制作脚本
 
     ```python
     # ur_script.py
 
-    import sys
-    sys.path.append("path/to/some/folder") # 换为克隆时指定的文件夹
-    from task import create_single_task, create_parallel_tasks_from_list, create_serial_tasks_from_list
-    from config import GLOBAL_CONFIG as cfg
+    from cmdrunner.task import create_single_task, create_parallel_tasks_from_list, create_serial_tasks_from_list
+    from cmdrunner.config import GLOBAL_CONFIG as cfg
 
     # 首先进行一些配置
     cfg.dry_run = False
     cfg.max_workers = 16
-    cfg.log_path = "./zzz_log_path"
 
     # 然后制作命令和任务标签
     single_cmd = "shell_cmd0"
+    multi_cmd_list = ["shell_cmd1", "shell_cmd2", "shell_cmd3"]
+
     single_cmd_tag = "cmd0_tag" # （可选）
-    cmd_list = ["shell_cmd1", "shell_cmd2", "shell_cmd3"]
-    tag_list = ["cmd1_tag", "cmd2_tag", "cmd3_tag"] # (可选)
+    multi_tag_list = ["cmd1_tag", "cmd2_tag", "cmd3_tag"] # (可选)
 
     # 然后创建任务
+    # 创建单个任务
     single_task = create_single_task(single_cmd, single_cmd_tag)
+
+    # 创建多进程并行任务
     parallel_tasks = create_parallel_tasks_from_list(cmd_list, tag_list)
+
+    # 创建单进程串行任务
     serial_tasks = create_serial_tasks_from_list(cmd_list, tag_list)
 
     # 最后跑起来，run!!!
     single_task.run()
-    parallel_tasks.run() # 并行运行命令
-    serial_tasks.run() # 串行运行命令
+    parallel_tasks.run()
+    serial_tasks.run()
     ```
 
 3.  运行脚本
-
-    ```shell
-    python3 ./ur_script.py || python ./ur_script.py
-    ```
+    - 如果已经永久加入路径
+      ```shell
+        python3 ./ur_script.py
+      ```
+    - 如果没有
+      - linux用户
+        ```bash
+          PYTHONPATH="path/to/some/folder" python3 ./ur_script.py
+        ```
+      - Windows用户
+        ```powershell
+          set PYTHONPATH=C:\path\to\your-lib && python user_script.py
+        ```
 
 ## 需要注意什么？
 
 - 需要注意这个项目只在`python3.12`解释器 + `ubuntu24.04` 上正常运行，并没有在其他版本python和环境下进行完全测试
 - 需要注意作者可能会无期限的暂停开发，所以欢迎 fork
-- 需要注意这个狗屎仓库远远不能用于生产使用
+- 需要注意这个仓库远远不能用于生产使用
 
 ## TODO
 
 - 日志
 - 更干净的输出
 - 隐晦角落的 bug
-- 对 Pipeline 的支持
+- 对 Pipeline 的全面支持
+- 添加类似`sankemake`中的`expand`
+
+## 警告
+
+- **Pipeline 尚且不完善**
