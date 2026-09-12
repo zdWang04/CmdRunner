@@ -24,7 +24,7 @@
       打开`~/.bashrc`或者`~/.zshrc`（linux用户）
 
     ```bash
-          export PYTHONPATH="path/to/some/folder:$PYTHONPATH"
+    export PYTHONPATH="path/to/some/folder:$PYTHONPATH"
     ```
 
     - Windows用户
@@ -32,7 +32,7 @@
       `windows + R`呼出窗口，输入`cmd`，然后运行以下命令
 
     ```cmd
-      setx PYTHONPATH "C:path/to/some/folder"
+    setx PYTHONPATH "C:path/to/some/folder"
     ```
 
 2.  制作脚本
@@ -40,8 +40,9 @@
     ```python
     # ur_script.py
 
-    from cmdrunner.task import create_single_task, create_parallel_tasks_from_list, create_serial_tasks_from_list
-    from cmdrunner.config import GLOBAL_CONFIG as cfg
+    from cmdrunner import create_single_task, create_parallel_tasks_from_list, create_serial_tasks_from_list
+    from cmdrunner import config as cfg
+
 
     # 首先进行一些配置
     cfg.dry_run = False
@@ -55,16 +56,17 @@
     multi_tag_list = ["cmd1_tag", "cmd2_tag", "cmd3_tag"] # (可选)
 
     # 然后创建任务
-    # 创建单个任务
+
+    ## 创建单个任务
     single_task = create_single_task(single_cmd, single_cmd_tag)
 
-    # 创建多进程并行任务
+    ## 创建多进程并行任务
     parallel_tasks = create_parallel_tasks_from_list(cmd_list, tag_list)
 
-    # 创建单进程串行任务
+    ## 创建单进程串行任务
     serial_tasks = create_serial_tasks_from_list(cmd_list, tag_list)
 
-    # 最后跑起来，run!!!
+    ## 最后跑起来，run!!!
     single_task.run()
     parallel_tasks.run()
     serial_tasks.run()
@@ -73,16 +75,16 @@
 3.  运行脚本
     - 如果已经永久加入路径
       ```shell
-        python3 ./ur_script.py
+      python3 ./ur_script.py
       ```
     - 如果没有
       - linux用户
         ```bash
-          PYTHONPATH="path/to/some/folder" python3 ./ur_script.py
+        PYTHONPATH="path/to/some/folder" python3 ./ur_script.py
         ```
       - Windows用户
-        ```powershell
-          set PYTHONPATH=C:\path\to\your-lib && python user_script.py
+        ```bash
+        set PYTHONPATH=C:\path\to\some\folder && python user_script.py
         ```
 
 ## 需要注意什么？
@@ -93,11 +95,13 @@
 
 ## TODO
 
-- 日志
-- 更干净的输出
+- 编写 TaskMonitor 的逻辑
+- 任务恢复与跳过
 - 隐晦角落的 bug
 - 对 Pipeline 的全面支持
 - 添加类似`sankemake`中的`expand`
+
+- 日志 | Done
 
 ## 警告
 
