@@ -2,3 +2,4 @@ __*__/
 .vscode/
 test/
 main.py
+.venv/

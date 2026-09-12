@@ -6,12 +6,12 @@ class Timer:
         self.start = time()
 
     def done(self) -> str:
-        return self.__render(time() - self.start)
+        return self._render(time() - self.start)
 
-    def __render(self, duration: float) -> str:
-        if duration <= 60:
+    def _render(self, duration: float) -> str:
+        if duration <= 60.0:
             return f"{duration:.2f} seconds"
-        elif duration > 60 and duration <= 3600:
+        elif duration > 60.0 and duration <= 3600.0:
             return f"{duration / 60:.2f} minutes"
         else:
             return f"{duration / 3600:.2f} hours"

@@ -1,5 +1,4 @@
-from .config import config
-from .task import (
+from .factory import (
     create_parallel_tasks_from_list,
     create_serial_tasks_from_list,
     create_single_task,
@@ -7,7 +6,6 @@ from .task import (
 )
 
 __all__ = [
-    "config",
     "create_parallel_tasks_from_list",
     "create_serial_tasks_from_list",
     "create_single_task",
