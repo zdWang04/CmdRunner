@@ -7,8 +7,8 @@ class InvalidPathError(ValueError):
 
 
 def to_path(path: str | Path) -> Path:
-    if not isinstance(path, (str, Path)):
-        raise TypeError(f"path must be str | Path, but got {type(path).__name__}")
+    # if not isinstance(path, (str, Path)):
+    #     raise TypeError(f"path must be str | Path, but got {type(path).__name__}")
 
     s = str(path)
 

@@ -27,6 +27,3 @@ class Config:
     @log_path.setter
     def log_path(self, value: Path | str):
         self._log_path = to_path(value)
-
-
-config = Config()

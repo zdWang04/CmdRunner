@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from functools import wraps
 from multiprocessing.pool import Pool as PoolType
 
-from ..config import config as cfg
+from .._state import config as cfg
 
 
 @contextmanager

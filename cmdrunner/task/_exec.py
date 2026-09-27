@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import signal
 from functools import partial
 from subprocess import run
 from typing import TYPE_CHECKING
@@ -15,6 +16,11 @@ _shell_run = partial(
     text=True,
     start_new_session=True,
 )
+
+
+def _init_worker() -> None:
+    """worker 启动时忽略 SIGINT，Ctrl+C 只由父进程处理。"""
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
 def _tasks_run_wrapper(task: TaskType):

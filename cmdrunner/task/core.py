@@ -1,14 +1,14 @@
-import signal
 import sys
 from multiprocessing import Pool
 from subprocess import CalledProcessError
 from uuid import uuid4
 
-from ..config import config as cfg
-from ..timer import Timer
+from .._state import config as cfg
+from ..utils.color_utils import print_green, print_orange, print_red
 from ..utils.path_utils import mkdir
+from ..utils.time_utils import format_duration, get_time
 from ._decorators import _dry_run_wrapperr, _handle_interrupt
-from ._exec import _shell_run, _tasks_run_wrapper
+from ._exec import _init_worker, _shell_run, _tasks_run_wrapper
 
 type TaskType = _Task | _ParallelTasks | _SerialTasks
 
@@ -28,47 +28,54 @@ class _Task:
         self.cmd = cmd
         self.tag = tag
         self.id = str(uuid4())
-        self.timer = Timer()
-
-        if not cfg.dry_run:
-            mkdir(cfg.log_path)
-            self.log_stdout_file = cfg.log_path / f"{tag}_{self.id}.stdout.log"
-            self.log_stderr_file = cfg.log_path / f"{tag}_{self.id}.stderr.log"
+        self.err = None
+        self.start = None
 
         self.successed = False
-        self.error = None
+        # self.task_state = TaskStateReport(self.id, self.cmd, self.tag)
 
-    def _task_report(self) -> str:
-        return (
-            f"[SUCCESSED] | {self.timer.done()} | {self.id} | {self.tag} | {self.error} | {self.cmd[:50] if len(self.cmd) >= 50 else self.cmd}"
-            if self.successed
-            else f"[FAILED] | {self.timer.done()} | {self.id} | {self.tag} | {self.error} | {self.cmd[:50] if len(self.cmd) >= 50 else self.cmd}"
+    def _init_logger(self):
+        if not cfg.dry_run:
+            mkdir(cfg.log_path)
+            self.log_stdout_file = cfg.log_path / f"{self.tag}_{self.id}.stdout.log"
+            self.log_stderr_file = cfg.log_path / f"{self.tag}_{self.id}.stderr.log"
+
+    def _when_start(self):
+        self._init_logger()
+        start_str, self.start = get_time()
+        print_orange(
+            f"[RUNNING] | {self.tag} | {self.id} | {self.cmd if len(self.cmd) < 50 else self.cmd[:49]}... | {start_str} |"
         )
+
+    def _when_done(self):
+        _, end = get_time()
+        duration = end - self.start  # pyright: ignore[reportOperatorIssue]
+        if self.err is None:
+            print_green(
+                f"[SUCCESSED] | {self.tag} | {self.id} | {format_duration(duration.total_seconds())}"
+            )
+        else:
+            print_red(
+                f"[FAILED] | {self.tag} | {self.id} | {format_duration(duration.total_seconds())}"
+            )
 
     def run(self):
         if cfg.dry_run:
-            self.successed = True
+            pass
         else:
             try:
-                print(f"Task Start: {self.tag}_{self.id}")
-                self.timer.reset()
+                self._when_start()
+
                 with (
                     open(self.log_stdout_file, "w") as log_f,
                     open(self.log_stderr_file, "w") as error_f,
                 ):
                     _shell_run(self.cmd, stdout=log_f, stderr=error_f)
-                print(f"Task Done: {self.tag}_{self.id}")
-                self.successed = True
+
             except CalledProcessError as e:
-                self.error = e
-                self.successed = False
+                self.err = str(e)
 
-        print(self._task_report())
-
-
-def _init_worker() -> None:
-    """worker 启动时忽略 SIGINT，Ctrl+C 只由父进程处理。"""
-    signal.signal(signal.SIGINT, signal.SIG_IGN)
+        self._when_done()
 
 
 class _ParallelTasks:
