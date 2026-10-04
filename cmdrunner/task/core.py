@@ -32,11 +32,12 @@ class _Task:
         self.start = None
 
         self.successed = False
-        # self.task_state = TaskStateReport(self.id, self.cmd, self.tag)
+        self.log_stdout_file = None
+        self.log_stderr_file = None
 
     def _init_logger(self):
         if not cfg.dry_run:
-            mkdir(cfg.log_path)
+            _ = mkdir(cfg.log_path)
             self.log_stdout_file = cfg.log_path / f"{self.tag}_{self.id}.stdout.log"
             self.log_stderr_file = cfg.log_path / f"{self.tag}_{self.id}.stderr.log"
 
@@ -44,7 +45,7 @@ class _Task:
         self._init_logger()
         start_str, self.start = get_time()
         print_orange(
-            f"[RUNNING] | {self.tag} | {self.id} | {self.cmd if len(self.cmd) < 50 else self.cmd[:49]}... | {start_str} |"
+            f"[RUNNING] | {self.tag} | {self.id} | {self.cmd if len(self.cmd) < 50 else self.cmd[:49]}... | {start_str}"
         )
 
     def _when_done(self):
@@ -56,26 +57,32 @@ class _Task:
             )
         else:
             print_red(
-                f"[FAILED] | {self.tag} | {self.id} | {format_duration(duration.total_seconds())}"
+                f"[FAILED] | {self.tag} | {self.id} | {format_duration(duration.total_seconds())} | {self.err}"
             )
+
+    def _dry_run_report(self):
+
+        print_green(f"[DRYRUN] | {self.cmd}")
 
     def run(self):
         if cfg.dry_run:
-            pass
+            self._dry_run_report()
         else:
+            self._when_start()
             try:
-                self._when_start()
+                assert self.log_stdout_file is not None
+                assert self.log_stderr_file is not None
 
                 with (
                     open(self.log_stdout_file, "w") as log_f,
                     open(self.log_stderr_file, "w") as error_f,
                 ):
-                    _shell_run(self.cmd, stdout=log_f, stderr=error_f)
+                    _ = _shell_run(self.cmd, stdout=log_f, stderr=error_f)
 
             except CalledProcessError as e:
                 self.err = str(e)
 
-        self._when_done()
+            self._when_done()
 
 
 class _ParallelTasks:
